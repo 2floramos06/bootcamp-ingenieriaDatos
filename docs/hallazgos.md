@@ -9,7 +9,3 @@ Posterior a esto se encontro que external_ref <--> student_id y al realizar un c
 ## Hallazgo 2.- JOINs en el Dominio CRM (Tabla Activities)
 Se analizó la tabla `activities` para entender su comportamiento relacional con `contacts` y `opportunities`. El modelo ER indica una cardinalidad de `0..1` (opcional) hacia ambas entidades.
 Mediante el perfilado de datos, se comprobó matemáticamente que las actividades están distribuidas en cuatro escenarios distintos: vinculadas a ambos, solo a un contacto, solo a una oportunidad, o ninguna de las dos.
-* **Justificación de Negocio:** 
-  * Las actividades con **ambos vínculos** representan acciones directas con una persona sobre un trato comercial específico.
-  * Las vinculadas **solo a contactos** representan interacciones generales de seguimiento (networking).
-  * Las vinculadas **solo a oportunidades** o **ninguna** representan tareas internas del equipo de ventas (ej. revisión de un contrato, recordatorios administrativos).
