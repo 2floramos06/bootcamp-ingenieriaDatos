@@ -3,7 +3,6 @@ CREATE SCHEMA IF NOT EXISTS bronze;
 DROP TABLE IF EXISTS bronze.students;
 
 --TABLAS DE UNIVERSITY
-
 CREATE TABLE bronze.students (
     student_id TEXT,
     first_name TEXT,
@@ -81,6 +80,87 @@ CREATE TABLE IF NOT EXISTS bronze.grades (
     weight TEXT,
     graded_at TEXT,
     enrollment_id TEXT,
+
+    _source_file TEXT NOT NULL,
+    _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    _batch_id TEXT NOT NULL
+);
+
+--TABLAS BILLING
+CREATE TABLE IF NOT EXISTS bronze.customers (
+    customer_id TEXT,
+    external_ref TEXT,
+    first_name TEXT,
+    last_name TEXT,
+    email TEXT,
+    country TEXT,
+    created_at TEXT,
+    segment TEXT,
+
+    _source_file TEXT NOT NULL,
+    _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    _batch_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bronze.products (
+    product_id TEXT,
+    sku TEXT,
+    name TEXT,
+    category TEXT,
+    monthly_price TEXT,
+    active TEXT,
+
+    _source_file TEXT NOT NULL,
+    _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    _batch_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bronze.subscriptions (
+    subscription_id TEXT,
+    status TEXT,
+    start_date TEXT,
+    end_date TEXT,
+    customer_id TEXT,
+    product_id TEXT,
+
+    _source_file TEXT NOT NULL,
+    _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    _batch_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bronze.invoices (
+    invoice_id TEXT,
+    issued_at TEXT,
+    due_at TEXT,
+    total TEXT,
+    status TEXT,
+    currency TEXT,
+    customer_id TEXT,
+
+    _source_file TEXT NOT NULL,
+    _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    _batch_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bronze.invoice_items (
+    invoice_item_id TEXT,
+    quantity TEXT,
+    unit_price TEXT,
+    line_total TEXT,
+    invoice_id TEXT,
+    product_id TEXT,
+
+    _source_file TEXT NOT NULL,
+    _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    _batch_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bronze.payments (
+    payment_id TEXT,
+    amount TEXT,
+    paid_at TEXT,
+    method TEXT,
+    invoice_id TEXT,
 
     _source_file TEXT NOT NULL,
     _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
