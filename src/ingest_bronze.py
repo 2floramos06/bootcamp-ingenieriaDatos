@@ -10,68 +10,88 @@ from sqlalchemy import create_engine, text
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_PATH = PROJECT_ROOT / "data" / "raw"
 
-STUDENTS_FILE = RAW_PATH / "university" / "students.csv"
+#STUDENTS_FILE = RAW_PATH / "university" / "students.csv"
 
 DATABASE_URL = (
     "postgresql+psycopg2://flor:mundolibre@localhost:5432/dwh"
 )
 
+TABLE_CONFIG = {
+    #UNIVERSITY
+    "students": {
+        "domain": "university",
+        "file": "students.csv"
+    },
+    "professors": {
+        "domain": "university",
+        "file": "professors.csv"
+    },
+    "courses": {
+        "domain": "university",
+        "file": "courses.csv"
+    },
+    "semesters": {
+        "domain": "university",
+        "file": "semesters.csv"
+    },
+    "enrollments": {
+        "domain": "university",
+        "file": "enrollments.csv"
+    },
+    "grades": {
+        "domain": "university",
+        "file": "grades.csv"
+    },
 
-def main():
-    if not STUDENTS_FILE.exists():
-        raise FileNotFoundError(
-            f"No se encontró el archivo: {STUDENTS_FILE}"
-        )
+    #BILLING
+    "customers": {
+        "domain": "billing",
+        "file": "customers.csv"
+    },
+    "products": {
+        "domain": "billing",
+        "file": "products.csv"
+    },
+    "subscriptions": {
+        "domain": "billing",
+        "file": "subscriptions.csv"
+    },
+    "invoices": {
+        "domain": "billing",
+        "file": "invoices.csv"
+    },
+    "invoice_items": {
+        "domain": "billing",
+        "file": "inovice_items.csv"
+    },
+    "payments":{
+        "domain": "billing",
+        "file": "payments.csv"
+    },
 
-    # Identificador único de esta ejecución
-    batch_id = str(uuid4())
-
-    # Leer CSV como texto para conservar los datos de origen
-    df_students = pd.read_csv(
-        STUDENTS_FILE,
-        dtype=str
-    )
-
-    # Agregar metadata de ingesta
-    df_students["_source_file"] = STUDENTS_FILE.name
-    df_students["_ingested_at"] = datetime.now(timezone.utc)
-    df_students["_batch_id"] = batch_id
-
-    engine = create_engine(DATABASE_URL)
-
-    with engine.begin() as connection:
-        connection.execute(
-            text("TRUNCATE TABLE bronze.students")
-        )
-
-        df_students.to_sql(
-            name="students",
-            con=connection,
-            schema="bronze",
-            if_exists="append",
-            index=False,
-            method="multi",
-            chunksize=1000
-        )
-
-        cantidad_postgres = connection.execute(
-            text("SELECT COUNT(*) FROM bronze.students")
-        ).scalar_one()
-
-    cantidad_csv = len(df_students)
-
-    print("Archivo:", STUDENTS_FILE)
-    print("Filas CSV:", cantidad_csv)
-    print("Filas PostgreSQL:", cantidad_postgres)
-    print("Batch ID:", batch_id)
-
-    if cantidad_csv != cantidad_postgres:
-        raise ValueError(
-            "Los registros del CSV y Postgres no coincide"
-        )
-
-    print("Carga Bronze completa")
-
-
-if __name__ == "__main__":
-    main()
+    #CRM
+    "accounts": {
+        "domain": "crm",
+        "file": "accounts.csv"
+    },
+    "contacts": {
+        "domain": "crm",
+        "file": "contacts.csv"
+    },
+    "leads": {
+        "domain": "crm",
+        "file": "leads.csv"
+    },
+    "opportunities": {
+        "domain": "crm",
+        "file": "opportunities.csv"
+    },
+    "opportunity_contacts": {
+        "domain": "crm",
+        "file": "opportunity_contacts.csv"
+    },
+    "activities": {
+        "domain": "crm",
+        "file": "activities.csv"
+    }
+}
