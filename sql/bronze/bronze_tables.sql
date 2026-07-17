@@ -166,3 +166,85 @@ CREATE TABLE IF NOT EXISTS bronze.payments (
     _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     _batch_id TEXT NOT NULL
 );
+
+--TABLAS DE CRM
+CREATE TABLE IF NOT EXISTS bronze.accounts (
+    account_id TEXT,
+    name TEXT,
+    industry TEXT,
+    country TEXT,
+    annual_revenue TEXT,
+    employees TEXT,
+    created_at TEXT,
+
+    _source_file TEXT NOT NULL,
+    _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    _batch_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bronze.contacts (
+    contact_id TEXT,
+    first_name TEXT,
+    last_name TEXT,
+    email TEXT,
+    phone TEXT,
+    title TEXT,
+    created_at TEXT,
+    account_id TEXT,
+
+    _source_file TEXT NOT NULL,
+    _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    _batch_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bronze.leads (
+    lead_id TEXT,
+    first_name TEXT,
+    last_name TEXT,
+    email TEXT,
+    source TEXT,
+    status TEXT,
+    score TEXT,
+    created_at TEXT,
+
+    _source_file TEXT NOT NULL,
+    _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    _batch_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bronze.opportunities (
+    opportunity_id TEXT,
+    name TEXT,
+    stage TEXT,
+    amount TEXT,
+    close_date TEXT,
+    created_at TEXT,
+    account_id TEXT,
+
+    _source_file TEXT NOT NULL,
+    _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    _batch_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bronze.opportunity_contacts (
+    opportunity_id TEXT,
+    contact_id TEXT,
+    role TEXT,
+
+    _source_file TEXT NOT NULL,
+    _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    _batch_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bronze.activities (
+    activity_id TEXT,
+    type TEXT,
+    subject TEXT,
+    occurred_at TEXT,
+    contact_id TEXT,
+    opportunity_id TEXT,
+
+    _source_file TEXT NOT NULL,
+    _ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    _batch_id TEXT NOT NULL
+);
