@@ -7,3 +7,10 @@ Se construyó el modelo ER desde cero en dbdiagram.io de acuerdo a los resultado
 
 ## Decision 2.- Relación de negocio external_ref con student_id (Discovery)
 Si bien coinciden los IDs pero no tienen los mismos datos personales de las personas, en base al análisis se pudo concluir que "Customers" hace referencia a la persona que paga la suscripción del estudiante (ej. Como un papá pagando el colegio de su hijo)
+
+## Decisión 3.- Conservación de los datos originales
+Durante Discovery no se modificaron ni eliminaron registros. Los problemas e inconsistencias encontradas serán tratados en la capa Silver mediante conversiones, estandarizaciones, manteniendo la trazabilidad con los archivos originales.
+
+## Decisión 4.- Tipos de datos en Silver
+Se decidió convertir las columnas temporales actualmente alamcenadas como object (texto) a "DATE" o "TIMESTAMP".
+Los IDs permanecen como texto, los conteos como "INTEGER", los atributos lógicos como "BOOLEAN" y los montos como "NUMERIC"
