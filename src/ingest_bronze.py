@@ -95,3 +95,107 @@ TABLE_CONFIG = {
         "file": "activities.csv"
     }
 }
+
+def cargar_tabla_bronze(
+    engine,
+    table_name,
+    domain,
+    file_name,
+    batch_id
+):
+    file_path = RAW_PATH / domain / file_name
+
+    if not file_path.exists():
+        raise FileNotFoundError(
+            f"No se encontró el archivo: {file_path}"
+        )
+
+    df = pd.read_csv(
+        file_path,
+        dtype=str,
+        keep_default_na=True
+    )
+
+    cantidad_csv = len(df)
+
+    # Metadata de ingesta
+    df["_source_file"] = file_name
+    df["_ingested_at"] = datetime.now(timezone.utc)
+    df["_batch_id"] = batch_id
+
+    with engine.begin() as connection:
+
+        connection.execute(
+            text(f'TRUNCATE TABLE bronze."{table_name}"')
+        )
+
+        df.to_sql(
+            name=table_name,
+            con=connection,
+            schema="bronze",
+            if_exists="append",
+            index=False,
+            method="multi",
+            chunksize=1000
+        )
+
+        cantidad_postgres = connection.execute(
+            text(
+                f'SELECT COUNT(*) '
+                f'FROM bronze."{table_name}"'
+            )
+        ).scalar_one()
+
+    if cantidad_csv != cantidad_postgres:
+        raise ValueError(
+            f"{table_name}: CSV={cantidad_csv}, "
+            f"PostgreSQL={cantidad_postgres}"
+        )
+
+    return {
+        "tabla": table_name,
+        "archivo": file_name,
+        "filas_csv": cantidad_csv,
+        "filas_postgresql": cantidad_postgres,
+        "estado": "OK"
+    }
+
+def main():
+    engine = create_engine(DATABASE_URL)
+
+    batch_id = str(uuid4())
+    resultados = []
+
+    print("Carga Bronze")
+    print("Batch ID:", batch_id)
+    print("--------------------------------")
+
+    for table_name, config in TABLE_CONFIG.items():
+
+        print(f"Cargando {table_name}...")
+
+        resultado = cargar_tabla_bronze(
+            engine=engine,
+            table_name=table_name,
+            domain=config["domain"],
+            file_name=config["file"],
+            batch_id=batch_id
+        )
+
+        resultados.append(resultado)
+
+        print(
+            f"{table_name}: "
+            f"{resultado['filas_postgresql']} filas"
+        )
+
+    print("--------------------------------")
+    print("Bronze finalizada")
+    print("Tablas cargadas:", len(resultados))
+
+    resumen = pd.DataFrame(resultados)
+    print(resumen.to_string(index=False))
+
+
+if __name__ == "__main__":
+    main()
