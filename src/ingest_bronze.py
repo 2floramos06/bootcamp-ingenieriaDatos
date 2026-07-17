@@ -62,7 +62,7 @@ TABLE_CONFIG = {
     },
     "invoice_items": {
         "domain": "billing",
-        "file": "inovice_items.csv"
+        "file": "invoice_items.csv"
     },
     "payments":{
         "domain": "billing",
@@ -126,7 +126,7 @@ def cargar_tabla_bronze(
     with engine.begin() as connection:
 
         connection.execute(
-            text(f'TRUNCATE TABLE bronze."{table_name}"')
+            text(f'TRUNCATE TABLE bronze."{table_name}"') #Si falla el script no se crean dupplicados
         )
 
         df.to_sql(
@@ -163,7 +163,7 @@ def cargar_tabla_bronze(
 def main():
     engine = create_engine(DATABASE_URL)
 
-    batch_id = str(uuid4())
+    batch_id = str(uuid4()) #Si hay un error rastrear en que ejecución entraron 
     resultados = []
 
     print("Carga Bronze")
