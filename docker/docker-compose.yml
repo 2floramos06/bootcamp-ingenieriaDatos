@@ -71,16 +71,33 @@ services:
       - airflow-init
 
   jupyter:
-    image: jupyter/pyspark-notebook:latest
+    image: quay.io/jupyter/pyspark-notebook:latest
     container_name: bootcamp_jupyter
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
     environment:
       JUPYTER_TOKEN: ${JUPYTER_TOKEN}
+      DWH_HOST: postgres
+      DWH_PORT: 5432
+      DWH_DB: dwh
+      DWH_USER: ${POSTGRES_USER}
+      DWH_PASSWORD: ${POSTGRES_PASSWORD}
+
     ports:
       - "8888:8888"
+      - "4040:4040"
+
     volumes:
       - ../notebooks:/home/jovyan/work/notebooks
       - ../data:/home/jovyan/work/data
-    command: start-notebook.sh --NotebookApp.token=${JUPYTER_TOKEN}
+      - ../src:/home/jovyan/work/src
+
+    command: 
+      - start-notebook.py 
+      - --IdentityProvider.token=${JUPYTER_TOKEN}
 
 volumes:
   pg_data:
