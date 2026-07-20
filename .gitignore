@@ -13,3 +13,7 @@ data/parquet/
 # Archivos temporales de Spark/Hadoop
 *.crc
 _SUCCESS
+
+# Entornos virtuales
+.venv/
+venv/
