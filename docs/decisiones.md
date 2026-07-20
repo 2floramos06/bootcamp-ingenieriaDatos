@@ -34,3 +34,19 @@ No se calculará la aprobación o reprobación utilizando un umbral de 51 puntos
 Los campos invoices.total e invoice_items.line_total se conservarán con los valores recibidos desde la fuente.
 No se reemplazará invoices.total por la suma de las líneas, debido a que no se dispone de reglas suficientes para determinar cuál de los importes es el valor oficial.
 La diferencia será expuesta como indicador de calidad y se analizará posteriormente en la capa Gold.
+
+## Decisión 8.- Detalles de Gold Billing
+Se identificaron ocho monedas en las facturas y la mayoría de los clientes con facturación presenta operaciones en más de una moneda.
+Por esta razón, el resumen financiero utiliza una fila por cliente y moneda. No se suman importes entre monedas diferentes ni se aplican tipos de cambio no proporcionados por el origen.
+Las suscripciones se resumen por cliente en una tabla separada. 
+
+## Decisión 9.- Tratamiento de saldos y sobrepagos
+Los pagos se conservan tal como fueron registrados en el origen. No se modifica el estado de las facturas a partir del monto pagado.
+En Gold se separan:
+- saldo neto
+- monto pendiente
+- monto pagado en exceso
+- clasificación de facturas sobrepagadas, pagadas exactamente y subpagadas
+- inconsistencias entre el estado "paid" y el pago acumulado
+Los sobrepagos no compensan los montos pendientes en los indicadores de deuda.
+Las suscripciones activas en productos inactivos se presentan como casos para revisión y no se eliminan ni se reclasifican automáticamente.

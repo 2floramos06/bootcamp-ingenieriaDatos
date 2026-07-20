@@ -56,3 +56,25 @@ No se corrigieron los importes automáticamente, porque los datos fuente no indi
 Se encontraron inscripciones con sumas de pesos desde 0.10 hasta valores superiores a 3.00.  Esto indica que los pesos no deben interpretarse obligatoriamente como porcentajes cuya suma siempre sea 100%. También pueden representar ponderaciones relativas o una característica particular del sistema de origen.
 
 Por esta razón, la suma diferente de 1 no se utiliza para descartar las notas. Se conserva como indicador descriptivo y el análisis utiliza el promedio ponderado de las evaluaciones disponibles.
+
+## Hallazgo 9.- Hallazgos de Billing en Gold
+- 9.933 de los 10.000 clientes tienen facturas.
+- Se identificaron ocho monedas distintas.
+- La tabla Gold financiera contiene 32.147 combinaciones cliente-moneda.
+- Existen 2.502 facturas sin items.
+- De las 47.498 facturas con items, casi todas presentan diferencias entre el total de factura y la suma de sus líneas.
+- Existen 783 suscripciones con fechas temporalmente inconsistentes.
+- 2.224 clientes no tienen suscripciones.
+
+## Hallazgo 10.- Conciliación entre facturas y pagos
+Al comparar el total de cada factura con la suma de sus pagos se identificaron:
+- 20.482 facturas sobrepagadas.
+- 8 facturas pagadas exactamente.
+- 29.510 facturas subpagadas.
+- 14.476 facturas con estado "paid" cuyo pago acumulado es menor que el total de la factura.
+- No se encontraron facturas "pending" u "overdue" completamente pagadas.
+Estos resultados evidencian una falta de conciliación entre los importes de pagos y el estado de las facturas en el sistema de origen.
+
+## Hallazgo 11.- Productos y suscripciones
+Los 200 productos tienen suscripciones y registros en invoice_items. Se identificaron 30 productos inactivos y 1.753 suscripciones activas
+asociadas a productos inactivos. Esta situación se conserva como indicador para revisión, ya que el dataset no permite determinar si corresponde a una inconsistencia o a productos retirados que continúan disponibles para clientes antiguos.
