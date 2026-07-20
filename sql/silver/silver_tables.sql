@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS silver.grades (
 
     is_score_valid BOOLEAN NOT NULL,
     is_weight_valid BOOLEAN NOT NULL,
-    is_weight_sum_valid BOOLEAN NOT NULL,
+    is_weight_sum_one BOOLEAN NOT NULL,
 
     _source_file TEXT,
     _bronze_ingested_at TIMESTAMP,

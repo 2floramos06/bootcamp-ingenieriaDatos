@@ -370,7 +370,7 @@ def transformar_grades(df_bronze: DataFrame) -> DataFrame:
             & (F.col("weight") <= 1),
         )
         .withColumn(
-            "is_weight_sum_valid",
+            "is_weight_sum_one",
             (F.col("_grade_count") == F.col("_weight_count"))
             & F.col("total_weight").isNotNull()
             & (F.col("total_weight") == F.lit(1).cast("decimal(8,4)")),
@@ -390,7 +390,7 @@ def transformar_grades(df_bronze: DataFrame) -> DataFrame:
             "enrollment_id",
             "is_score_valid",
             "is_weight_valid",
-            "is_weight_sum_valid",
+            "is_weight_sum_one",
         ],
     )
 
@@ -1218,13 +1218,13 @@ def validar_grades(
             (
                 "filas_peso_invalido",
                 "Filas cuyo peso total no suma 1",
-                ~F.col("is_weight_sum_valid"),
+                ~F.col("is_weight_sum_one"),
             ),
         ],
     )
     huerfanos = contar_huerfanos(df_silver, "enrollment_id", df_enrollments_silver)
     enrollments_peso_invalido = (
-        df_silver.filter(~F.col("is_weight_sum_valid"))
+        df_silver.filter(~F.col("is_weight_sum_one"))
         .select("enrollment_id")
         .distinct()
         .count()
