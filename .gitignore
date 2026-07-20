@@ -1,1 +1,15 @@
 .ipynb_checkpoints/
+
+# Credenciales locales
+docker/.env
+
+# Archivos generados por Python
+__pycache__/
+*.py[cod]
+
+# Salidas generadas por Spark
+data/parquet/
+
+# Archivos temporales de Spark/Hadoop
+*.crc
+_SUCCESS

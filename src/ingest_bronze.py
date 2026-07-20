@@ -3,6 +3,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pandas as pd
+import os
 from sqlalchemy import create_engine, text
 
 
@@ -12,8 +13,21 @@ RAW_PATH = PROJECT_ROOT / "data" / "raw"
 
 #STUDENTS_FILE = RAW_PATH / "university" / "students.csv"
 
+DWH_HOST = os.getenv("DWH_HOST", "postgres")
+DWH_PORT = os.getenv("DWH_PORT", "5432")
+DWH_DB = os.getenv("DWH_DB", "dwh")
+DWH_USER = os.getenv("DWH_USER")
+DWH_PASSWORD = os.getenv("DWH_PASSWORD")
+
+if not DWH_USER or not DWH_PASSWORD:
+    raise ValueError(
+        "No se encontraron DWH_USER o DWH_PASSWORD"
+    )
+
 DATABASE_URL = (
-    "postgresql+psycopg2://flor:mundolibre@localhost:5432/dwh"
+    f"postgresql+psycopg2://"
+    f"{DWH_USER}:{DWH_PASSWORD}"
+    f"@{DWH_HOST}:{DWH_PORT}/{DWH_DB}"
 )
 
 TABLE_CONFIG = {
