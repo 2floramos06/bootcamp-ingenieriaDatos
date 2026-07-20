@@ -16,7 +16,8 @@ Se decidió convertir las columnas temporales actualmente alamcenadas como objec
 Los IDs permanecen como texto, los conteos como "INTEGER", los atributos lógicos como "BOOLEAN" y los montos como "NUMERIC"
 
 ## Decisión 5.- Bandera de peso (weight)
-En UNIVERSITY se creó la bandera is_weight_sum_valid valida solo si las ponderaciones de las notas entre homework, project, midterm, quiz y final completan el 100%, no determina si un estudiante aprobó o reprobó.
+En UNIVERSITY se creó la bandera is_weight_sum_one valida solo si las ponderaciones de las notas entre homework, project, midterm, quiz y final estan cerca de 1 (ya que se notó que no siempre es 1, sino que puede ser mayor o menor). 
+Por este motivo, no se considera que una suma diferente de 1 invalide automáticamente las notas. Los pesos se interpretan como ponderaciones relativas entre las evaluaciones disponibles. SUM(score * weight) / SUM(weight), este indicador representa las evaluaciones registradas y no se presenta como una nota final oficial. No se coloca 0 a las evaluaciones ausentes, porque el dataset no permite diferenciar entre una actividad no realizada, no registrada o pendiente. La columna is_weight_sum_one se conserva como un indicador descriptivo, no como una condición de validez.
 
 ## Decisión 6.- Determinación del resultado académico
 Para identificar las inscripciones reprobadas se utilizará el campo status de la tabla enrollments, debido a que representa el resultado registrado directamente por el sistema fuente.

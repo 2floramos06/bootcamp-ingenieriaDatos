@@ -51,3 +51,8 @@ De las 47.498 facturas que poseen líneas de detalle:
 Debido a que las líneas individuales cumplen la relación line_total = quantity × unit_price, la inconsistencia se encuentra entre
 el total declarado en invoices y la suma de sus detalles.
 No se corrigieron los importes automáticamente, porque los datos fuente no indican si el total de factura incluye impuestos, descuentos, conversiones  u otros.
+
+## Hallazgo 8.- Hallazgo sobre los pesos de las evaluaciones
+Se encontraron inscripciones con sumas de pesos desde 0.10 hasta valores superiores a 3.00.  Esto indica que los pesos no deben interpretarse obligatoriamente como porcentajes cuya suma siempre sea 100%. También pueden representar ponderaciones relativas o una característica particular del sistema de origen.
+
+Por esta razón, la suma diferente de 1 no se utiliza para descartar las notas. Se conserva como indicador descriptivo y el análisis utiliza el promedio ponderado de las evaluaciones disponibles.
