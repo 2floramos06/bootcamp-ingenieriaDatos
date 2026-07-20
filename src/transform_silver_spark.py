@@ -31,10 +31,6 @@ def crear_spark():
     spark = (
         SparkSession.builder
         .appName("TransformSilverUniversity")
-        .config(
-            "spark.jars.packages",
-            "org.postgresql:postgresql:42.7.4",
-        )
         .getOrCreate()
     )
 
@@ -42,45 +38,10 @@ def crear_spark():
 
     return spark
 
-def leer_students_bronze(spark):
+def leer_tabla_bronze(spark, tabla):
     return spark.read.jdbc(
         url=JDBC_URL,
-        table="bronze.students",
-        properties=JDBC_PROPERTIES,
-    )
-
-def leer_professors_bronze(spark):
-    return spark.read.jdbc(
-        url=JDBC_URL,
-        table="bronze.professors",
-        properties=JDBC_PROPERTIES,
-    )
-
-def leer_courses_bronze(spark):
-    return spark.read.jdbc(
-        url=JDBC_URL,
-        table="bronze.courses",
-        properties=JDBC_PROPERTIES,
-    )
-
-def leer_semesters_bronze(spark):
-    return spark.read.jdbc(
-        url=JDBC_URL,
-        table="bronze.semesters",
-        properties=JDBC_PROPERTIES,
-    )
-
-def leer_enrollments_bronze(spark):
-    return spark.read.jdbc(
-        url=JDBC_URL,
-        table="bronze.enrollments",
-        properties=JDBC_PROPERTIES,
-    )
-
-def leer_grades_bronze(spark):
-    return spark.read.jdbc(
-        url=JDBC_URL,
-        table="bronze.grades",
+        table=f"bronze.{tabla}",
         properties=JDBC_PROPERTIES,
     )
 
@@ -515,65 +476,26 @@ def transformar_grades(df_bronze):
         "_silver_created_at",
     )
 
-def validar_students(df_bronze, df_silver):
-    total_bronze = df_bronze.count()
-    total_silver = df_silver.count()
-
-    ids_nulos = (
-        df_silver
-        .filter(F.col("student_id").isNull())
-        .count()
+def validar_students(
+    df_bronze,
+    df_silver,
+):
+    return validar_basico(
+        df_bronze=df_bronze,
+        df_silver=df_silver,
+        tabla="students",
+        columna_pk="student_id",
     )
 
-    ids_duplicados = (
-        df_silver
-        .groupBy("student_id")
-        .count()
-        .filter(F.col("count") > 1)
-        .count()
-    )
-
-    print("--------------------------------")
-    print("VALIDACIONES DE STUDENTS")
-    print("--------------------------------")
-    print("Registros Bronze:", total_bronze)
-    print("Registros transformados:", total_silver)
-    print("Student ID nulos:", ids_nulos)
-    print("Student ID duplicados:", ids_duplicados)
-
-    if total_bronze != total_silver:
-        raise ValueError(
-            "Bronze y Silver tienen conteos diferentes"
-        )
-
-    if ids_nulos > 0:
-        raise ValueError(
-            "Existen student_id nulos"
-        )
-
-    if ids_duplicados > 0:
-        raise ValueError(
-            "Existen student_id duplicados"
-        )
-
-    return total_silver
-
-def validar_professors(df_bronze, df_silver):
-    total_bronze = df_bronze.count()
-    total_silver = df_silver.count()
-
-    ids_nulos = (
-        df_silver
-        .filter(F.col("professor_id").isNull())
-        .count()
-    )
-
-    ids_duplicados = (
-        df_silver
-        .groupBy("professor_id")
-        .count()
-        .filter(F.col("count") > 1)
-        .count()
+def validar_professors(
+    df_bronze,
+    df_silver,
+):
+    total_silver = validar_basico(
+        df_bronze=df_bronze,
+        df_silver=df_silver,
+        tabla="professors",
+        columna_pk="professor_id",
     )
 
     hired_at_nulos = (
@@ -582,32 +504,10 @@ def validar_professors(df_bronze, df_silver):
         .count()
     )
 
-    print("--------------------------------")
-    print("VALIDACIONES DE PROFESSORS")
-    print("--------------------------------")
-    print("Registros Bronze:", total_bronze)
-    print("Registros transformados:", total_silver)
-    print("Professor ID nulos:", ids_nulos)
-    print("Professor ID duplicados:", ids_duplicados)
     print(
         "Hired_at nulos o no convertibles:",
         hired_at_nulos,
     )
-
-    if total_bronze != total_silver:
-        raise ValueError(
-            "Bronze y Silver tienen conteos diferentes en professors"
-        )
-
-    if ids_nulos > 0:
-        raise ValueError(
-            "Existen professor_id nulos"
-        )
-
-    if ids_duplicados > 0:
-        raise ValueError(
-            "Existen professor_id duplicados"
-        )
 
     return total_silver
 
@@ -616,21 +516,11 @@ def validar_courses(
     df_silver,
     df_professors_silver,
 ):
-    total_bronze = df_bronze.count()
-    total_silver = df_silver.count()
-
-    ids_nulos = (
-        df_silver
-        .filter(F.col("course_id").isNull())
-        .count()
-    )
-
-    ids_duplicados = (
-        df_silver
-        .groupBy("course_id")
-        .count()
-        .filter(F.col("count") > 1)
-        .count()
+    total_silver = validar_basico(
+        df_bronze=df_bronze,
+        df_silver=df_silver,
+        tabla="courses",
+        columna_pk="course_id",
     )
 
     credits_nulos = (
@@ -647,14 +537,20 @@ def validar_courses(
 
     professor_id_nulos = (
         df_silver
-        .filter(F.col("professor_id").isNull())
+        .filter(
+            F.col("professor_id").isNull()
+            | (F.trim(F.col("professor_id")) == "")
+        )
         .count()
     )
 
     profesores_huerfanos = (
         df_silver
         .select("professor_id")
-        .filter(F.col("professor_id").isNotNull())
+        .filter(
+            F.col("professor_id").isNotNull()
+            & (F.trim(F.col("professor_id")) != "")
+        )
         .distinct()
         .join(
             df_professors_silver
@@ -666,51 +562,25 @@ def validar_courses(
         .count()
     )
 
-    print("--------------------------------")
-    print("VALIDACIONES DE COURSES")
-    print("--------------------------------")
-    print("Registros Bronze:", total_bronze)
-    print("Registros transformados:", total_silver)
-    print("Course ID nulos:", ids_nulos)
-    print("Course ID duplicados:", ids_duplicados)
     print("Credits nulos o no convertibles:", credits_nulos)
     print("Credits menores o iguales a cero:", credits_invalidos)
-    print("Professor ID nulos:", professor_id_nulos)
-    print("Professor ID sin profesor existente:", profesores_huerfanos)
-
-    if total_bronze != total_silver:
-        raise ValueError(
-            "Bronze y Silver tienen conteos diferentes en courses"
-        )
-
-    if ids_nulos > 0:
-        raise ValueError(
-            "Existen course_id nulos"
-        )
-
-    if ids_duplicados > 0:
-        raise ValueError(
-            "Existen course_id duplicados"
-        )
+    print("Professor ID nulos o vacíos:", professor_id_nulos)
+    print(
+        "Professor ID sin profesor existente:",
+        profesores_huerfanos,
+    )
 
     return total_silver
 
-def validar_semesters(df_bronze, df_silver):
-    total_bronze = df_bronze.count()
-    total_silver = df_silver.count()
-
-    ids_nulos = (
-        df_silver
-        .filter(F.col("semester_id").isNull())
-        .count()
-    )
-
-    ids_duplicados = (
-        df_silver
-        .groupBy("semester_id")
-        .count()
-        .filter(F.col("count") > 1)
-        .count()
+def validar_semesters(
+    df_bronze,
+    df_silver,
+):
+    total_silver = validar_basico(
+        df_bronze=df_bronze,
+        df_silver=df_silver,
+        tabla="semesters",
+        columna_pk="semester_id",
     )
 
     year_nulos = (
@@ -744,22 +614,18 @@ def validar_semesters(df_bronze, df_silver):
     )
 
     fechas_inconsistentes = (
-    df_silver
-    .filter(
-        F.col("start_date").isNotNull()
-        & F.col("end_date").isNotNull()
-        & (F.col("start_date") > F.col("end_date"))
-    )
-    .count()
+        df_silver
+        .filter(
+            F.col("start_date").isNotNull()
+            & F.col("end_date").isNotNull()
+            & (
+                F.col("start_date")
+                > F.col("end_date")
+            )
+        )
+        .count()
     )
 
-    print("--------------------------------")
-    print("VALIDACIONES DE SEMESTERS")
-    print("--------------------------------")
-    print("Registros Bronze:", total_bronze)
-    print("Registros transformados:", total_silver)
-    print("Semester ID nulos:", ids_nulos)
-    print("Semester ID duplicados:", ids_duplicados)
     print("Year nulos o no convertibles:", year_nulos)
     print("Half nulos o no convertibles:", half_nulos)
     print("Half diferentes de 1 o 2:", half_invalidos)
@@ -768,21 +634,6 @@ def validar_semesters(df_bronze, df_silver):
         "Registros con relación temporal inválida:",
         fechas_inconsistentes,
     )
-
-    if total_bronze != total_silver:
-        raise ValueError(
-            "Bronze y Silver tienen conteos diferentes en semesters"
-        )
-
-    if ids_nulos > 0:
-        raise ValueError(
-            "Existen semester_id nulos"
-        )
-
-    if ids_duplicados > 0:
-        raise ValueError(
-            "Existen semester_id duplicados"
-        )
 
     return total_silver
 
@@ -793,21 +644,11 @@ def validar_enrollments(
     df_courses_silver,
     df_semesters_silver,
 ):
-    total_bronze = df_bronze.count()
-    total_silver = df_silver.count()
-
-    ids_nulos = (
-        df_silver
-        .filter(F.col("enrollment_id").isNull())
-        .count()
-    )
-
-    ids_duplicados = (
-        df_silver
-        .groupBy("enrollment_id")
-        .count()
-        .filter(F.col("count") > 1)
-        .count()
+    total_silver = validar_basico(
+        df_bronze=df_bronze,
+        df_silver=df_silver,
+        tabla="enrollments",
+        columna_pk="enrollment_id",
     )
 
     fechas_nulas = (
@@ -833,7 +674,9 @@ def validar_enrollments(
     students_huerfanos = (
         df_silver
         .select("student_id")
-        .filter(F.col("student_id").isNotNull())
+        .filter(F.col("student_id").isNotNull()
+                & (F.trim(F.col("student_id")) !="")
+                )
         .distinct()
         .join(
             df_students_silver
@@ -893,35 +736,13 @@ def validar_enrollments(
         .count()
     )
 
-    print("--------------------------------")
-    print("VALIDACIONES DE ENROLLMENTS")
-    print("--------------------------------")
-    print("Registros Bronze:", total_bronze)
-    print("Registros transformados:", total_silver)
-    print("Enrollment ID nulos:", ids_nulos)
-    print("Enrollment ID duplicados:", ids_duplicados)
     print("Enrolled_at nulos o no convertibles:", fechas_nulas)
     print("Estados inválidos:", estados_invalidos)
-    print("Student ID sin estudiante existente:", students_huerfanos)
-    print("Course ID sin curso existente:", courses_huerfanos)
-    print("Semester ID sin semestre existente:", semesters_huerfanos)
+    print("Students huérfanos:", students_huerfanos)
+    print("Courses huérfanos:", courses_huerfanos)
+    print("Semesters huérfanos:", semesters_huerfanos)
     print("Filas en combinaciones repetidas:", combinaciones_repetidas)
     print("Grupos repetidos:", grupos_repetidos)
-
-    if total_bronze != total_silver:
-        raise ValueError(
-            "Bronze y Silver tienen conteos diferentes en enrollments"
-        )
-
-    if ids_nulos > 0:
-        raise ValueError(
-            "Existen enrollment_id nulos"
-        )
-
-    if ids_duplicados > 0:
-        raise ValueError(
-            "Existen enrollment_id duplicados"
-        )
 
     return total_silver
 
@@ -930,26 +751,19 @@ def validar_grades(
     df_silver,
     df_enrollments_silver,
 ):
-    total_bronze = df_bronze.count()
-    total_silver = df_silver.count()
-
-    ids_nulos = (
-        df_silver
-        .filter(F.col("grade_id").isNull())
-        .count()
-    )
-
-    ids_duplicados = (
-        df_silver
-        .groupBy("grade_id")
-        .count()
-        .filter(F.col("count") > 1)
-        .count()
+    total_silver = validar_basico(
+        df_bronze=df_bronze,
+        df_silver=df_silver,
+        tabla="grades",
+        columna_pk="grade_id",
     )
 
     assessments_nulos = (
         df_silver
-        .filter(F.col("assessment").isNull())
+        .filter(
+            F.col("assessment").isNull()
+            | (F.trim(F.col("assessment")) == "")
+        )
         .count()
     )
 
@@ -973,14 +787,20 @@ def validar_grades(
 
     enrollment_id_nulos = (
         df_silver
-        .filter(F.col("enrollment_id").isNull())
+        .filter(
+            F.col("enrollment_id").isNull()
+            | (F.trim(F.col("enrollment_id")) == "")
+        )
         .count()
     )
 
     enrollments_huerfanos = (
         df_silver
         .select("enrollment_id")
-        .filter(F.col("enrollment_id").isNotNull())
+        .filter(
+            F.col("enrollment_id").isNotNull()
+            & (F.trim(F.col("enrollment_id")) != "")
+        )
         .distinct()
         .join(
             df_enrollments_silver
@@ -1006,22 +826,12 @@ def validar_grades(
         .count()
     )
 
-    print("--------------------------------")
-    print("VALIDACIONES DE GRADES")
-    print("--------------------------------")
-    print("Registros Bronze:", total_bronze)
-    print("Registros transformados:", total_silver)
-    print("Grade ID nulos:", ids_nulos)
-    print("Grade ID duplicados:", ids_duplicados)
-    print("Assessment nulos:", assessments_nulos)
+    print("Assessment nulos o vacíos:", assessments_nulos)
     print("Scores inválidos:", scores_invalidos)
     print("Weights individuales inválidos:", weights_invalidos)
     print("Graded_at nulos o no convertibles:", fechas_nulas)
-    print("Enrollment ID nulos:", enrollment_id_nulos)
-    print(
-        "Enrollment ID sin inscripción existente:",
-        enrollments_huerfanos,
-    )
+    print("Enrollment ID nulos o vacíos:", enrollment_id_nulos)
+    print("Enrollments huérfanos:", enrollments_huerfanos)
     print(
         "Filas cuyo peso total no suma 1:",
         filas_peso_total_invalido,
@@ -1031,99 +841,14 @@ def validar_grades(
         enrollments_peso_total_invalido,
     )
 
-    if total_bronze != total_silver:
-        raise ValueError(
-            "Bronze y Silver tienen conteos diferentes en grades"
-        )
-
-    if ids_nulos > 0:
-        raise ValueError(
-            "Existen grade_id nulos"
-        )
-
-    if ids_duplicados > 0:
-        raise ValueError(
-            "Existen grade_id duplicados"
-        )
-
     return total_silver
 
-def escribir_students_silver(df_silver):
+def escribir_tabla_silver(df_silver, tabla):
     (
         df_silver.write
         .format("jdbc")
         .option("url", JDBC_URL)
-        .option("dbtable", "silver.students")
-        .option("user", DWH_USER)
-        .option("password", DWH_PASSWORD)
-        .option("driver", "org.postgresql.Driver")
-        .option("truncate", "true")
-        .mode("overwrite")
-        .save()
-    )
-
-def escribir_professors_silver(df_silver):
-    (
-        df_silver.write
-        .format("jdbc")
-        .option("url", JDBC_URL)
-        .option("dbtable", "silver.professors")
-        .option("user", DWH_USER)
-        .option("password", DWH_PASSWORD)
-        .option("driver", "org.postgresql.Driver")
-        .option("truncate", "true")
-        .mode("overwrite")
-        .save()
-    )
-
-def escribir_courses_silver(df_silver):
-    (
-        df_silver.write
-        .format("jdbc")
-        .option("url", JDBC_URL)
-        .option("dbtable", "silver.courses")
-        .option("user", DWH_USER)
-        .option("password", DWH_PASSWORD)
-        .option("driver", "org.postgresql.Driver")
-        .option("truncate", "true")
-        .mode("overwrite")
-        .save()
-    )
-
-def escribir_semesters_silver(df_silver):
-    (
-        df_silver.write
-        .format("jdbc")
-        .option("url", JDBC_URL)
-        .option("dbtable", "silver.semesters")
-        .option("user", DWH_USER)
-        .option("password", DWH_PASSWORD)
-        .option("driver", "org.postgresql.Driver")
-        .option("truncate", "true")
-        .mode("overwrite")
-        .save()
-    )
-
-def escribir_enrollments_silver(df_silver):
-    (
-        df_silver.write
-        .format("jdbc")
-        .option("url", JDBC_URL)
-        .option("dbtable", "silver.enrollments")
-        .option("user", DWH_USER)
-        .option("password", DWH_PASSWORD)
-        .option("driver", "org.postgresql.Driver")
-        .option("truncate", "true")
-        .mode("overwrite")
-        .save()
-    )
-
-def escribir_grades_silver(df_silver):
-    (
-        df_silver.write
-        .format("jdbc")
-        .option("url", JDBC_URL)
-        .option("dbtable", "silver.grades")
+        .option("dbtable", f"silver.{tabla}")
         .option("user", DWH_USER)
         .option("password", DWH_PASSWORD)
         .option("driver", "org.postgresql.Driver")
@@ -1133,178 +858,90 @@ def escribir_grades_silver(df_silver):
     )
 
 #Validar en postgres
-def validar_escritura_students(spark, total_esperado):
-    df_postgresql = spark.read.jdbc(
-        url=JDBC_URL,
-        table="silver.students",
-        properties=JDBC_PROPERTIES,
+def validar_basico(
+    df_bronze,
+    df_silver,
+    tabla,
+    columna_pk,
+):
+    total_bronze = df_bronze.count()
+    total_silver = df_silver.count()
+
+    ids_nulos_o_vacios = (
+        df_silver
+        .filter(
+            F.col(columna_pk).isNull()
+            | (
+                F.trim(F.col(columna_pk))
+                == ""
+            )
+        )
+        .count()
     )
 
-    total_postgresql = df_postgresql.count()
+    ids_duplicados = (
+        df_silver
+        .groupBy(columna_pk)
+        .count()
+        .filter(F.col("count") > 1)
+        .count()
+    )
 
-    print("Registros esperados:", total_esperado)
-    print("Registros en silver.students:", total_postgresql)
+    print("--------------------------------")
+    print(f"VALIDACIONES BÁSICAS DE {tabla.upper()}")
+    print("--------------------------------")
+    print("Registros Bronze:", total_bronze)
+    print("Registros transformados:", total_silver)
+    print(f"{columna_pk} nulos o vacíos:", ids_nulos_o_vacios)
+    print(f"{columna_pk} duplicados:", ids_duplicados)
 
-    if total_postgresql != total_esperado:
+    if total_bronze != total_silver:
         raise ValueError(
-            "La escritura en Silver no coincide"
+            f"Bronze y Silver tienen conteos diferentes en {tabla}"
         )
 
-    print("Students cargado correctamente en Silver")
+    if ids_nulos_o_vacios > 0:
+        raise ValueError(
+            f"Existen {columna_pk} nulos o vacíos"
+        )
 
-def validar_escritura_professors(
+    if ids_duplicados > 0:
+        raise ValueError(
+            f"Existen {columna_pk} duplicados"
+        )
+
+    return total_silver
+
+def validar_escritura(
     spark,
+    tabla,
     total_esperado,
 ):
     df_postgresql = spark.read.jdbc(
         url=JDBC_URL,
-        table="silver.professors",
+        table=f"silver.{tabla}",
         properties=JDBC_PROPERTIES,
     )
 
     total_postgresql = df_postgresql.count()
 
     print(
-        "Registros esperados en professors:",
+        f"Registros esperados en {tabla}:",
         total_esperado,
     )
 
     print(
-        "Registros en silver.professors:",
+        f"Registros en silver.{tabla}:",
         total_postgresql,
     )
 
     if total_postgresql != total_esperado:
         raise ValueError(
-            "La escritura de professors en Silver no coincide"
+            f"La escritura de {tabla} en Silver no coincide"
         )
 
     print(
-        "Professors cargado correctamente en Silver"
-    )
-
-def validar_escritura_courses(
-    spark,
-    total_esperado,
-):
-    df_postgresql = spark.read.jdbc(
-        url=JDBC_URL,
-        table="silver.courses",
-        properties=JDBC_PROPERTIES,
-    )
-
-    total_postgresql = df_postgresql.count()
-
-    print(
-        "Registros esperados en courses:",
-        total_esperado,
-    )
-
-    print(
-        "Registros en silver.courses:",
-        total_postgresql,
-    )
-
-    if total_postgresql != total_esperado:
-        raise ValueError(
-            "La escritura de courses en Silver no coincide"
-        )
-
-    print(
-        "Courses cargado correctamente en Silver"
-    )
-
-def validar_escritura_semesters(
-    spark,
-    total_esperado,
-):
-    df_postgresql = spark.read.jdbc(
-        url=JDBC_URL,
-        table="silver.semesters",
-        properties=JDBC_PROPERTIES,
-    )
-
-    total_postgresql = df_postgresql.count()
-
-    print(
-        "Registros esperados en semesters:",
-        total_esperado,
-    )
-
-    print(
-        "Registros en silver.semesters:",
-        total_postgresql,
-    )
-
-    if total_postgresql != total_esperado:
-        raise ValueError(
-            "La escritura de semesters en Silver no coincide"
-        )
-
-    print(
-        "Semesters cargado correctamente en Silver"
-    )
-
-def validar_escritura_enrollments(
-    spark,
-    total_esperado,
-):
-    df_postgresql = spark.read.jdbc(
-        url=JDBC_URL,
-        table="silver.enrollments",
-        properties=JDBC_PROPERTIES,
-    )
-
-    total_postgresql = df_postgresql.count()
-
-    print(
-        "Registros esperados en enrollments:",
-        total_esperado,
-    )
-
-    print(
-        "Registros en silver.enrollments:",
-        total_postgresql,
-    )
-
-    if total_postgresql != total_esperado:
-        raise ValueError(
-            "La escritura de enrollments en Silver no coincide"
-        )
-
-    print(
-        "Enrollments cargado correctamente en Silver"
-    )
-
-def validar_escritura_grades(
-    spark,
-    total_esperado,
-):
-    df_postgresql = spark.read.jdbc(
-        url=JDBC_URL,
-        table="silver.grades",
-        properties=JDBC_PROPERTIES,
-    )
-
-    total_postgresql = df_postgresql.count()
-
-    print(
-        "Registros esperados en grades:",
-        total_esperado,
-    )
-
-    print(
-        "Registros en silver.grades:",
-        total_postgresql,
-    )
-
-    if total_postgresql != total_esperado:
-        raise ValueError(
-            "La escritura de grades en Silver no coincide"
-        )
-
-    print(
-        "Grades cargado correctamente en Silver"
+        f"{tabla} cargado correctamente en Silver"
     )
 
 def main():
@@ -1314,11 +951,12 @@ def main():
         print("Versión de Spark:", spark.version)
         print("\nLeyendo bronze.students...")
 
-        df_students_bronze = leer_students_bronze(
-            spark
+        df_students_bronze = leer_tabla_bronze(
+            spark,
+            "students",
         )
 
-        print("Transformando students")
+        print("Transformando students...")
 
         df_students_silver = transformar_students(
             df_students_bronze
@@ -1329,29 +967,30 @@ def main():
             df_students_silver,
         )
 
-        print("Escribiendo silver.students")
+        print("Escribiendo silver.students...")
 
-        escribir_students_silver(
-            df_students_silver
+        escribir_tabla_silver(
+            df_students_silver,
+            "students",
         )
 
-        validar_escritura_students(
+        validar_escritura(
             spark,
+            "students",
             total_students,
         )
 
-        print("\nLeyendo bronze.professors")
+        print("\nLeyendo bronze.professors...")
 
-        df_professors_bronze = (
-            leer_professors_bronze(spark)
+        df_professors_bronze = leer_tabla_bronze(
+            spark,
+            "professors",
         )
 
-        print("Transformando professors")
+        print("Transformando professors...")
 
-        df_professors_silver = (
-            transformar_professors(
-                df_professors_bronze
-            )
+        df_professors_silver = transformar_professors(
+            df_professors_bronze
         )
 
         total_professors = validar_professors(
@@ -1359,24 +998,27 @@ def main():
             df_professors_silver,
         )
 
-        print("Escribiendo silver.professors")
+        print("Escribiendo silver.professors...")
 
-        escribir_professors_silver(
-            df_professors_silver
+        escribir_tabla_silver(
+            df_professors_silver,
+            "professors",
         )
 
-        validar_escritura_professors(
+        validar_escritura(
             spark,
+            "professors",
             total_professors,
         )
 
-        print("\nLeyendo bronze.courses")
+        print("\nLeyendo bronze.courses...")
 
-        df_courses_bronze = leer_courses_bronze(
-            spark
+        df_courses_bronze = leer_tabla_bronze(
+            spark,
+            "courses",
         )
 
-        print("Transformando courses")
+        print("Transformando courses...")
 
         df_courses_silver = transformar_courses(
             df_courses_bronze
@@ -1388,24 +1030,27 @@ def main():
             df_professors_silver,
         )
 
-        print("Escribiendo silver.courses")
+        print("Escribiendo silver.courses...")
 
-        escribir_courses_silver(
-            df_courses_silver
+        escribir_tabla_silver(
+            df_courses_silver,
+            "courses",
         )
 
-        validar_escritura_courses(
+        validar_escritura(
             spark,
+            "courses",
             total_courses,
         )
 
-        print("\nLeyendo bronze.semesters")
+        print("\nLeyendo bronze.semesters...")
 
-        df_semesters_bronze = leer_semesters_bronze(
-            spark
+        df_semesters_bronze = leer_tabla_bronze(
+            spark,
+            "semesters",
         )
 
-        print("Transformando semesters")
+        print("Transformando semesters...")
 
         df_semesters_silver = transformar_semesters(
             df_semesters_bronze
@@ -1416,24 +1061,27 @@ def main():
             df_semesters_silver,
         )
 
-        print("Escribiendo silver.semesters")
+        print("Escribiendo silver.semesters...")
 
-        escribir_semesters_silver(
-            df_semesters_silver
+        escribir_tabla_silver(
+            df_semesters_silver,
+            "semesters",
         )
 
-        validar_escritura_semesters(
+        validar_escritura(
             spark,
+            "semesters",
             total_semesters,
         )
 
-        print("\nLeyendo bronze.enrollments")
+        print("\nLeyendo bronze.enrollments...")
 
-        df_enrollments_bronze = leer_enrollments_bronze(
-            spark
+        df_enrollments_bronze = leer_tabla_bronze(
+            spark,
+            "enrollments",
         )
 
-        print("Transformando enrollments")
+        print("Transformando enrollments...")
 
         df_enrollments_silver = transformar_enrollments(
             df_enrollments_bronze
@@ -1447,21 +1095,24 @@ def main():
             df_semesters_silver,
         )
 
-        print("Escribiendo silver.enrollments")
+        print("Escribiendo silver.enrollments...")
 
-        escribir_enrollments_silver(
-            df_enrollments_silver
+        escribir_tabla_silver(
+            df_enrollments_silver,
+            "enrollments",
         )
 
-        validar_escritura_enrollments(
+        validar_escritura(
             spark,
+            "enrollments",
             total_enrollments,
         )
 
         print("\nLeyendo bronze.grades...")
 
-        df_grades_bronze = leer_grades_bronze(
-            spark
+        df_grades_bronze = leer_tabla_bronze(
+            spark,
+            "grades",
         )
 
         print("Transformando grades...")
@@ -1478,17 +1129,22 @@ def main():
 
         print("Escribiendo silver.grades...")
 
-        escribir_grades_silver(
-            df_grades_silver
+        escribir_tabla_silver(
+            df_grades_silver,
+            "grades",
         )
 
-        validar_escritura_grades(
+        validar_escritura(
             spark,
+            "grades",
             total_grades,
         )
 
+        print("\nUniversity cargado correctamente.")
+
     finally:
         spark.stop()
+
 
 if __name__ == "__main__":
     main()
