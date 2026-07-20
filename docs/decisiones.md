@@ -28,3 +28,8 @@ La interpretación será:
 - completed: inscripción finalizada.
 
 No se calculará la aprobación o reprobación utilizando un umbral de 51 puntos, ya que los datos fuente no especifican una nota mínima de aprobación y el cálculo ponderado puede presentar diferencias respecto al estado oficial.
+
+## Decisión 7.- Diferencias entre facturas y sus detalles
+Los campos invoices.total e invoice_items.line_total se conservarán con los valores recibidos desde la fuente.
+No se reemplazará invoices.total por la suma de las líneas, debido a que no se dispone de reglas suficientes para determinar cuál de los importes es el valor oficial.
+La diferencia será expuesta como indicador de calidad y se analizará posteriormente en la capa Gold.
