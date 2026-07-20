@@ -26,6 +26,11 @@ JDBC_PROPERTIES = {
     "driver": "org.postgresql.Driver",
 }
 
+PARQUET_BASE_PATH = os.getenv(
+    "PARQUET_BASE_PATH",
+    "/home/jovyan/work/data/parquet/silver",
+)
+
 #Crear Spark
 def crear_spark():
     spark = (
@@ -857,6 +862,62 @@ def escribir_tabla_silver(df_silver, tabla):
         .save()
     )
 
+def escribir_tabla_parquet(
+    df_silver,
+    tabla,
+):
+    ruta_parquet = (
+        f"{PARQUET_BASE_PATH}/{tabla}"
+    )
+
+    (
+        df_silver.write
+        .mode("overwrite")
+        .parquet(ruta_parquet)
+    )
+
+    print(
+        f"{tabla} exportado correctamente a Parquet"
+    )
+
+    print(
+        f"Ruta: {ruta_parquet}"
+    )
+
+def validar_parquet(
+    spark,
+    tabla,
+    total_esperado,
+):
+    ruta_parquet = (
+        f"{PARQUET_BASE_PATH}/{tabla}"
+    )
+
+    df_parquet = spark.read.parquet(
+        ruta_parquet
+    )
+
+    total_parquet = df_parquet.count()
+
+    print(
+        f"Registros esperados en Parquet {tabla}:",
+        total_esperado,
+    )
+
+    print(
+        f"Registros encontrados en Parquet {tabla}:",
+        total_parquet,
+    )
+
+    if total_parquet != total_esperado:
+        raise ValueError(
+            f"El Parquet de {tabla} no coincide"
+        )
+
+    print(
+        f"{tabla} validado correctamente en Parquet"
+    )
+
 #Validar en postgres
 def validar_basico(
     df_bronze,
@@ -980,6 +1041,19 @@ def main():
             total_students,
         )
 
+        print("Exportando studens a parquet")
+
+        escribir_tabla_parquet(
+            df_students_silver,
+            "students",
+        )
+
+        validar_parquet(
+            spark,
+            "students",
+            total_students,
+        )
+
         print("\nLeyendo bronze.professors...")
 
         df_professors_bronze = leer_tabla_bronze(
@@ -1006,6 +1080,19 @@ def main():
         )
 
         validar_escritura(
+            spark,
+            "professors",
+            total_professors,
+        )
+        
+        print("Exportando professors a parquet")
+
+        escribir_tabla_parquet(
+            df_professors_silver,
+            "professors",
+        )
+
+        validar_parquet(
             spark,
             "professors",
             total_professors,
@@ -1043,6 +1130,19 @@ def main():
             total_courses,
         )
 
+        print("Exportando courses a parquet")
+
+        escribir_tabla_parquet(
+            df_courses_silver,
+            "courses",
+        )
+
+        validar_parquet(
+            spark,
+            "courses",
+            total_courses,
+        )
+
         print("\nLeyendo bronze.semesters...")
 
         df_semesters_bronze = leer_tabla_bronze(
@@ -1069,6 +1169,19 @@ def main():
         )
 
         validar_escritura(
+            spark,
+            "semesters",
+            total_semesters,
+        )
+
+        print("Exportando semesters a parquet")
+
+        escribir_tabla_parquet(
+            df_semesters_silver,
+            "semesters",
+        )
+
+        validar_parquet(
             spark,
             "semesters",
             total_semesters,
@@ -1108,6 +1221,19 @@ def main():
             total_enrollments,
         )
 
+        print("Exportando enrollments a parquet")
+
+        escribir_tabla_parquet(
+            df_enrollments_silver,
+            "enrollments",
+        )
+
+        validar_parquet(
+            spark,
+            "enrollments",
+            total_enrollments,
+        )
+
         print("\nLeyendo bronze.grades...")
 
         df_grades_bronze = leer_tabla_bronze(
@@ -1135,6 +1261,19 @@ def main():
         )
 
         validar_escritura(
+            spark,
+            "grades",
+            total_grades,
+        )
+
+        print("Exportando grades a parquet")
+
+        escribir_tabla_parquet(
+            df_grades_silver,
+            "grades",
+        )
+
+        validar_parquet(
             spark,
             "grades",
             total_grades,
