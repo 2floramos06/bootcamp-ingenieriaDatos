@@ -15,3 +15,14 @@ Se identificó en el notebook que suscripciones cuya fecha de inicio es posterio
 
 ## Hallazgo 4.- Hallazgo sobre opoortunities
 Se identificó en el notebook que oportunidades cuya fecha de creación es posterior a la fecha de cierre. Este resultado puede representar inconsistencias ya que una oportunidad comercial debería haberse creado antes o el mismo día de su cierre.
+
+## Hallazgo 5.- Hallazgos de UNIVERSITY
+
+### Inscripciones repetidas
+Se identificaron 46 registros correspondientes a 23 combinaciones repetidas de student_id, course_id y semester_id.
+Los registros no se borraron porque pueden presentar distintos estados, como: active, dropped, failed o completed. Estas diferencias podrían representar reinscripciones o cambios en el estado académico.
+
+### Integridad de las ponderaciones
+De las inscripciones que tienen notas:
+- 140 tienen pesos que suman exactamente 1. (100%)
+- 22.646 tienen pesos que no suman exactamente 1. (100%)

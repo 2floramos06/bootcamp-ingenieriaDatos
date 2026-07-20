@@ -14,3 +14,17 @@ Durante Discovery no se modificaron ni eliminaron registros. Los problemas e inc
 ## Decisión 4.- Tipos de datos en Silver
 Se decidió convertir las columnas temporales actualmente alamcenadas como object (texto) a "DATE" o "TIMESTAMP".
 Los IDs permanecen como texto, los conteos como "INTEGER", los atributos lógicos como "BOOLEAN" y los montos como "NUMERIC"
+
+## Decisión 5.- Bandera de peso (weight)
+En UNIVERSITY se creó la bandera is_weight_sum_valid valida solo si las ponderaciones de las notas entre homework, project, midterm, quiz y final completan el 100%, no determina si un estudiante aprobó o reprobó.
+
+## Decisión 6.- Determinación del resultado académico
+Para identificar las inscripciones reprobadas se utilizará el campo status de la tabla enrollments, debido a que representa el resultado registrado directamente por el sistema fuente.
+
+La interpretación será:
+- failed: inscripción reprobada.
+- dropped: inscripción retirada (abandono).
+- active: inscripción actualmente activa.
+- completed: inscripción finalizada.
+
+No se calculará la aprobación o reprobación utilizando un umbral de 51 puntos, ya que los datos fuente no especifican una nota mínima de aprobación y el cálculo ponderado puede presentar diferencias respecto al estado oficial.
