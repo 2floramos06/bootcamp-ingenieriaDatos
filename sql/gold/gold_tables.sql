@@ -1,3 +1,5 @@
+BEGIN;
+
 CREATE SCHEMA IF NOT EXISTS gold;
 
 --UNIVERSITY
@@ -73,11 +75,6 @@ enrollments_by_student AS (
         COUNT(*) FILTER (
             WHERE g.enrollment_id IS NOT NULL
         ) AS enrollments_with_grades,
-
-        COUNT(*) FILTER (
-            WHERE g.enrollment_id IS NOT NULL
-              AND g.is_weight_sum_one
-        ) AS valid_weight_enrollments,
 
         COUNT(*) FILTER (
             WHERE g.enrollment_id IS NOT NULL
@@ -1489,3 +1486,4 @@ GROUP BY source;
 ALTER TABLE gold.lead_funnel_summary
 ADD CONSTRAINT pk_lead_funnel_summary
 PRIMARY KEY (source);
+COMMIT;
