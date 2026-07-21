@@ -1,0 +1,18 @@
+BEGIN;
+
+GRANT USAGE
+ON SCHEMA gold
+TO metabase_reader;
+
+GRANT SELECT
+ON ALL TABLES
+IN SCHEMA gold
+TO metabase_reader;
+
+ALTER DEFAULT PRIVILEGES
+FOR ROLE flor
+IN SCHEMA gold
+GRANT SELECT ON TABLES
+TO metabase_reader;
+
+COMMIT;

@@ -50,6 +50,7 @@ ALLOWED_SQL_FILES = {
     "gold_tables.sql",
     "gold_kpis.sql",
     "gold_views.sql",
+    "gold_permissions.sql"
 }
 
 def crear_conexion_postgresql():
@@ -158,6 +159,15 @@ def construir_gold_kpis() -> None:
 def construir_gold_views() -> None:
     ejecutar_archivo_sql(
         "gold_views.sql"
+    )
+
+def aplicar_permisos_gold() -> None:
+    """
+    Concede permisos de lectura al usuario
+    utilizado por Metabase.
+    """
+    ejecutar_archivo_sql(
+        "gold_permissions.sql"
     )
 
 
@@ -486,6 +496,12 @@ with DAG(
         ),
     )
 
+    task_gold_permissions = PythonOperator(
+        task_id="apply_gold_permissions",
+        python_callable=
+            aplicar_permisos_gold,
+    )
+
     task_validate_postgresql = (
         PythonOperator(
             task_id=(
@@ -525,6 +541,7 @@ with DAG(
         >> task_gold_tables
         >> task_gold_kpis
         >> task_gold_views
+        >> task_gold_permissions
         >> task_validate_postgresql
         >> task_start_jupyter
         >> task_export_parquet
