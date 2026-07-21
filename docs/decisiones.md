@@ -50,3 +50,12 @@ En Gold se separan:
 - inconsistencias entre el estado "paid" y el pago acumulado
 Los sobrepagos no compensan los montos pendientes en los indicadores de deuda.
 Las suscripciones activas en productos inactivos se presentan como casos para revisión y no se eliminan ni se reclasifican automáticamente.
+
+## Decisión 10.- CRM en Gold
+El resumen comercial utiliza una fila por cuenta. Las métricas de contactos, oportunidades, relaciones y actividades se agregan antes
+de realizar las uniones para evitar duplicar oportunidades o montos.
+Cuando una actividad tiene una oportunidad válida, se asigna a la cuenta de esa oportunidad. Cuando solo tiene un contacto válido, se
+asigna a la cuenta del contacto. Las actividades sin contacto ni oportunidad no se asignan artificialmente a una cuenta.
+Los leads se analizan en una tabla separada porque el origen no proporciona una relación entre leads, accounts, contacts u opportunities.
+El campo "amount" de oportunidades no incluye moneda. Por este motivo, los valores se presentan como montos registrados en CRM y no se
+etiquetan como USD ni se combinan con los importes de Billing.

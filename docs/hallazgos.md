@@ -78,3 +78,15 @@ Estos resultados evidencian una falta de conciliación entre los importes de pag
 ## Hallazgo 11.- Productos y suscripciones
 Los 200 productos tienen suscripciones y registros en invoice_items. Se identificaron 30 productos inactivos y 1.753 suscripciones activas
 asociadas a productos inactivos. Esta situación se conserva como indicador para revisión, ya que el dataset no permite determinar si corresponde a una inconsistencia o a productos retirados que continúan disponibles para clientes antiguos.
+
+## Hallazgo 12.- Hallazgos de CRM
+- Se conservaron 5.000 cuentas, 15.000 contactos y 3.000 oportunidades.
+- Se encontraron 1.029 oportunidades con fecha de cierre anterior a su fecha de creación.
+- De las 6.000 relaciones entre oportunidades y contactos, 5.995 corresponden a cuentas diferentes y únicamente 5 a la misma cuenta.
+- Se asignaron 17.019 actividades a cuentas.
+- Existen 2.981 actividades sin contacto ni oportunidad, por lo que no pueden atribuirse a una cuenta específica.
+- El monto total registrado de oportunidades es 113.765.797,09.
+- El monto registrado de oportunidades ganadas es 18.360.511,13.
+- El monto registrado del pipeline abierto es 83.464.415,86.
+- Existen 205 leads con estado actual "converted", equivalentes al 10,25 % de los 2.000 leads.
+- No se detectaron leads con problemas según las reglas de calidad aplicadas en Silver.

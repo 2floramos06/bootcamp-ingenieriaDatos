@@ -889,3 +889,603 @@ LEFT JOIN subscription_metrics AS m
 ALTER TABLE gold.customer_subscription_summary
 ADD CONSTRAINT pk_customer_subscription_summary
 PRIMARY KEY (customer_id);
+
+--CRM
+--account, contacts: resumen comercial por cuenta
+-- ==========================================================
+-- GOLD CRM
+-- Resumen comercial por cuenta
+-- Una fila por cuenta
+-- ==========================================================
+
+DROP TABLE IF EXISTS gold.account_crm_summary;
+
+CREATE TABLE gold.account_crm_summary AS
+WITH contact_metrics AS (
+    SELECT
+        account_id,
+
+        COUNT(*) AS total_contacts,
+
+        COUNT(*) FILTER (
+            WHERE is_email_present
+        ) AS contacts_with_email,
+
+        COUNT(*) FILTER (
+            WHERE NOT is_email_present
+        ) AS contacts_without_email,
+
+        MIN(created_at) AS first_contact_created_at,
+        MAX(created_at) AS latest_contact_created_at
+
+    FROM silver.contacts
+
+    WHERE is_account_linked
+
+    GROUP BY account_id
+),
+
+opportunity_metrics AS (
+    SELECT
+        account_id,
+
+        COUNT(*) AS total_opportunities,
+
+        COUNT(*) FILTER (
+            WHERE stage = 'prospect'
+        ) AS prospect_opportunities,
+
+        COUNT(*) FILTER (
+            WHERE stage = 'qualification'
+        ) AS qualification_opportunities,
+
+        COUNT(*) FILTER (
+            WHERE stage = 'proposal'
+        ) AS proposal_opportunities,
+
+        COUNT(*) FILTER (
+            WHERE stage = 'negotiation'
+        ) AS negotiation_opportunities,
+
+        COUNT(*) FILTER (
+            WHERE stage = 'won'
+        ) AS won_opportunities,
+
+        COUNT(*) FILTER (
+            WHERE stage = 'lost'
+        ) AS lost_opportunities,
+
+        COUNT(*) FILTER (
+            WHERE stage NOT IN ('won', 'lost')
+        ) AS open_opportunities,
+
+        COUNT(*) FILTER (
+            WHERE NOT is_temporally_valid
+        ) AS temporally_invalid_opportunities,
+
+        ROUND(
+            SUM(amount) FILTER (
+                WHERE is_amount_valid
+            ),
+            2
+        ) AS total_crm_opportunity_amount,
+
+        ROUND(
+            SUM(amount) FILTER (
+                WHERE stage = 'won'
+                  AND is_amount_valid
+            ),
+            2
+        ) AS won_crm_amount,
+
+        ROUND(
+            SUM(amount) FILTER (
+                WHERE stage = 'lost'
+                  AND is_amount_valid
+            ),
+            2
+        ) AS lost_crm_amount,
+
+        ROUND(
+            SUM(amount) FILTER (
+                WHERE stage NOT IN ('won', 'lost')
+                  AND is_amount_valid
+            ),
+            2
+        ) AS open_pipeline_crm_amount,
+
+        ROUND(
+            AVG(amount) FILTER (
+                WHERE is_amount_valid
+            ),
+            2
+        ) AS average_crm_opportunity_amount,
+
+        MIN(created_at) AS first_opportunity_created_at,
+        MAX(created_at) AS latest_opportunity_created_at,
+        MIN(close_date) AS earliest_close_date,
+        MAX(close_date) AS latest_close_date
+
+    FROM silver.opportunities
+
+    WHERE is_account_linked
+
+    GROUP BY account_id
+),
+
+opportunity_contact_metrics AS (
+    SELECT
+        o.account_id,
+
+        COUNT(*) AS opportunity_contact_relationships,
+
+        COUNT(*) FILTER (
+            WHERE oc.is_same_account
+        ) AS same_account_relationships,
+
+        COUNT(*) FILTER (
+            WHERE NOT oc.is_same_account
+        ) AS different_account_relationships,
+
+        COUNT(DISTINCT oc.opportunity_id)
+            AS opportunities_with_contacts,
+
+        COUNT(DISTINCT oc.contact_id)
+            AS distinct_contacts_in_opportunities,
+
+        COUNT(*) FILTER (
+            WHERE oc.role = 'decision_maker'
+        ) AS decision_maker_relationships,
+
+        COUNT(*) FILTER (
+            WHERE oc.role = 'end_user'
+        ) AS end_user_relationships,
+
+        COUNT(*) FILTER (
+            WHERE oc.role = 'financial'
+        ) AS financial_relationships,
+
+        COUNT(*) FILTER (
+            WHERE oc.role = 'influencer'
+        ) AS influencer_relationships,
+
+        COUNT(*) FILTER (
+            WHERE oc.role = 'technical'
+        ) AS technical_relationships
+
+    FROM silver.opportunity_contacts AS oc
+
+    INNER JOIN silver.opportunities AS o
+        ON oc.opportunity_id = o.opportunity_id
+
+    WHERE oc.is_opportunity_linked
+      AND oc.is_contact_linked
+
+    GROUP BY o.account_id
+),
+
+activity_assignment AS (
+    SELECT
+        a.activity_id,
+        a.activity_type,
+        a.occurred_at,
+
+        CASE
+            WHEN a.has_opportunity_id
+             AND a.is_opportunity_linked
+                THEN o.account_id
+
+            WHEN a.has_contact_id
+             AND a.is_contact_linked
+                THEN c.account_id
+
+            ELSE NULL
+        END AS assigned_account_id,
+
+        CASE
+            WHEN a.has_contact_id
+             AND a.has_opportunity_id
+                THEN 'contact_and_opportunity'
+
+            WHEN a.has_contact_id
+             AND NOT a.has_opportunity_id
+                THEN 'contact_only'
+
+            WHEN NOT a.has_contact_id
+             AND a.has_opportunity_id
+                THEN 'opportunity_only'
+
+            ELSE 'no_reference'
+        END AS reference_type,
+
+        CASE
+            WHEN a.has_contact_id
+             AND a.has_opportunity_id
+             AND a.is_contact_linked
+             AND a.is_opportunity_linked
+             AND c.account_id = o.account_id
+                THEN TRUE
+
+            ELSE FALSE
+        END AS both_references_same_account,
+
+        CASE
+            WHEN a.has_contact_id
+             AND a.has_opportunity_id
+             AND a.is_contact_linked
+             AND a.is_opportunity_linked
+             AND c.account_id IS DISTINCT FROM o.account_id
+                THEN TRUE
+
+            ELSE FALSE
+        END AS both_references_different_account
+
+    FROM silver.activities AS a
+
+    LEFT JOIN silver.contacts AS c
+        ON a.contact_id = c.contact_id
+
+    LEFT JOIN silver.opportunities AS o
+        ON a.opportunity_id = o.opportunity_id
+),
+
+activity_metrics AS (
+    SELECT
+        assigned_account_id AS account_id,
+
+        COUNT(*) AS total_activities,
+
+        COUNT(*) FILTER (
+            WHERE activity_type = 'call'
+        ) AS call_activities,
+
+        COUNT(*) FILTER (
+            WHERE activity_type = 'demo'
+        ) AS demo_activities,
+
+        COUNT(*) FILTER (
+            WHERE activity_type = 'email'
+        ) AS email_activities,
+
+        COUNT(*) FILTER (
+            WHERE activity_type = 'meeting'
+        ) AS meeting_activities,
+
+        COUNT(*) FILTER (
+            WHERE activity_type = 'note'
+        ) AS note_activities,
+
+        COUNT(*) FILTER (
+            WHERE reference_type = 'contact_only'
+        ) AS contact_only_activities,
+
+        COUNT(*) FILTER (
+            WHERE reference_type = 'opportunity_only'
+        ) AS opportunity_only_activities,
+
+        COUNT(*) FILTER (
+            WHERE reference_type = 'contact_and_opportunity'
+        ) AS contact_and_opportunity_activities,
+
+        COUNT(*) FILTER (
+            WHERE both_references_same_account
+        ) AS activities_with_same_account_references,
+
+        COUNT(*) FILTER (
+            WHERE both_references_different_account
+        ) AS activities_with_different_account_references,
+
+        MIN(occurred_at) AS first_activity_at,
+        MAX(occurred_at) AS latest_activity_at
+
+    FROM activity_assignment
+
+    WHERE assigned_account_id IS NOT NULL
+
+    GROUP BY assigned_account_id
+)
+
+SELECT
+    a.account_id,
+    a.name AS account_name,
+    a.industry,
+    a.country,
+    a.annual_revenue,
+    a.employees,
+    a.created_at AS account_created_at,
+
+    a.is_annual_revenue_valid,
+    a.is_employees_valid,
+    a.is_created_at_valid,
+
+    COALESCE(c.total_contacts, 0)
+        AS total_contacts,
+
+    COALESCE(c.contacts_with_email, 0)
+        AS contacts_with_email,
+
+    COALESCE(c.contacts_without_email, 0)
+        AS contacts_without_email,
+
+    c.first_contact_created_at,
+    c.latest_contact_created_at,
+
+    COALESCE(o.total_opportunities, 0)
+        AS total_opportunities,
+
+    COALESCE(o.prospect_opportunities, 0)
+        AS prospect_opportunities,
+
+    COALESCE(o.qualification_opportunities, 0)
+        AS qualification_opportunities,
+
+    COALESCE(o.proposal_opportunities, 0)
+        AS proposal_opportunities,
+
+    COALESCE(o.negotiation_opportunities, 0)
+        AS negotiation_opportunities,
+
+    COALESCE(o.won_opportunities, 0)
+        AS won_opportunities,
+
+    COALESCE(o.lost_opportunities, 0)
+        AS lost_opportunities,
+
+    COALESCE(o.open_opportunities, 0)
+        AS open_opportunities,
+
+    COALESCE(o.temporally_invalid_opportunities, 0)
+        AS temporally_invalid_opportunities,
+
+    COALESCE(o.total_crm_opportunity_amount, 0)
+        AS total_crm_opportunity_amount,
+
+    COALESCE(o.won_crm_amount, 0)
+        AS won_crm_amount,
+
+    COALESCE(o.lost_crm_amount, 0)
+        AS lost_crm_amount,
+
+    COALESCE(o.open_pipeline_crm_amount, 0)
+        AS open_pipeline_crm_amount,
+
+    o.average_crm_opportunity_amount,
+
+    CASE
+        WHEN COALESCE(
+            o.won_opportunities
+            + o.lost_opportunities,
+            0
+        ) > 0
+        THEN ROUND(
+            (
+                o.won_opportunities::numeric
+                / (
+                    o.won_opportunities
+                    + o.lost_opportunities
+                )
+            ) * 100,
+            2
+        )
+        ELSE NULL
+    END AS closed_opportunity_win_rate_pct,
+
+    o.first_opportunity_created_at,
+    o.latest_opportunity_created_at,
+    o.earliest_close_date,
+    o.latest_close_date,
+
+    COALESCE(
+        oc.opportunity_contact_relationships,
+        0
+    ) AS opportunity_contact_relationships,
+
+    COALESCE(
+        oc.same_account_relationships,
+        0
+    ) AS same_account_relationships,
+
+    COALESCE(
+        oc.different_account_relationships,
+        0
+    ) AS different_account_relationships,
+
+    COALESCE(
+        oc.opportunities_with_contacts,
+        0
+    ) AS opportunities_with_contacts,
+
+    COALESCE(
+        oc.distinct_contacts_in_opportunities,
+        0
+    ) AS distinct_contacts_in_opportunities,
+
+    COALESCE(
+        oc.decision_maker_relationships,
+        0
+    ) AS decision_maker_relationships,
+
+    COALESCE(
+        oc.end_user_relationships,
+        0
+    ) AS end_user_relationships,
+
+    COALESCE(
+        oc.financial_relationships,
+        0
+    ) AS financial_relationships,
+
+    COALESCE(
+        oc.influencer_relationships,
+        0
+    ) AS influencer_relationships,
+
+    COALESCE(
+        oc.technical_relationships,
+        0
+    ) AS technical_relationships,
+
+    COALESCE(ac.total_activities, 0)
+        AS total_activities,
+
+    COALESCE(ac.call_activities, 0)
+        AS call_activities,
+
+    COALESCE(ac.demo_activities, 0)
+        AS demo_activities,
+
+    COALESCE(ac.email_activities, 0)
+        AS email_activities,
+
+    COALESCE(ac.meeting_activities, 0)
+        AS meeting_activities,
+
+    COALESCE(ac.note_activities, 0)
+        AS note_activities,
+
+    COALESCE(ac.contact_only_activities, 0)
+        AS contact_only_activities,
+
+    COALESCE(ac.opportunity_only_activities, 0)
+        AS opportunity_only_activities,
+
+    COALESCE(
+        ac.contact_and_opportunity_activities,
+        0
+    ) AS contact_and_opportunity_activities,
+
+    COALESCE(
+        ac.activities_with_same_account_references,
+        0
+    ) AS activities_with_same_account_references,
+
+    COALESCE(
+        ac.activities_with_different_account_references,
+        0
+    ) AS activities_with_different_account_references,
+
+    ac.first_activity_at,
+    ac.latest_activity_at,
+
+    CURRENT_TIMESTAMP AS gold_created_at
+
+FROM silver.accounts AS a
+
+LEFT JOIN contact_metrics AS c
+    ON a.account_id = c.account_id
+
+LEFT JOIN opportunity_metrics AS o
+    ON a.account_id = o.account_id
+
+LEFT JOIN opportunity_contact_metrics AS oc
+    ON a.account_id = oc.account_id
+
+LEFT JOIN activity_metrics AS ac
+    ON a.account_id = ac.account_id;
+
+ALTER TABLE gold.account_crm_summary
+ADD CONSTRAINT pk_account_crm_summary
+PRIMARY KEY (account_id);
+
+--Leads: Distribucion de leads por fuente
+DROP TABLE IF EXISTS gold.lead_funnel_summary;
+
+CREATE TABLE gold.lead_funnel_summary AS
+SELECT
+    source,
+
+    COUNT(*) AS total_leads,
+
+    COUNT(*) FILTER (
+        WHERE status = 'new'
+    ) AS new_leads,
+
+    COUNT(*) FILTER (
+        WHERE status = 'contacted'
+    ) AS contacted_leads,
+
+    COUNT(*) FILTER (
+        WHERE status = 'qualified'
+    ) AS qualified_leads,
+
+    COUNT(*) FILTER (
+        WHERE status = 'converted'
+    ) AS converted_leads,
+
+    COUNT(*) FILTER (
+        WHERE status = 'lost'
+    ) AS lost_leads,
+
+    COUNT(*) FILTER (
+        WHERE is_email_present
+    ) AS leads_with_email,
+
+    COUNT(*) FILTER (
+        WHERE NOT is_email_present
+    ) AS leads_without_email,
+
+    ROUND(
+        AVG(score) FILTER (
+            WHERE is_score_valid
+        ),
+        2
+    ) AS average_lead_score,
+
+    MIN(score) FILTER (
+        WHERE is_score_valid
+    ) AS minimum_lead_score,
+
+    MAX(score) FILTER (
+        WHERE is_score_valid
+    ) AS maximum_lead_score,
+
+    CASE
+        WHEN COUNT(*) > 0
+        THEN ROUND(
+            (
+                COUNT(*) FILTER (
+                    WHERE status = 'converted'
+                )
+            )::numeric
+            / COUNT(*) * 100,
+            2
+        )
+        ELSE NULL
+    END AS conversion_rate_pct,
+
+    CASE
+        WHEN COUNT(*) > 0
+        THEN ROUND(
+            (
+                COUNT(*) FILTER (
+                    WHERE status IN (
+                        'qualified',
+                        'converted'
+                    )
+                )
+            )::numeric
+            / COUNT(*) * 100,
+            2
+        )
+        ELSE NULL
+    END AS qualified_or_converted_rate_pct,
+
+    MIN(created_at) AS first_lead_created_at,
+    MAX(created_at) AS latest_lead_created_at,
+
+    COUNT(*) FILTER (
+        WHERE NOT is_source_valid
+           OR NOT is_status_valid
+           OR NOT is_score_valid
+           OR NOT is_created_at_valid
+    ) AS leads_with_quality_issue,
+
+    CURRENT_TIMESTAMP AS gold_created_at
+
+FROM silver.leads
+
+GROUP BY source;
+
+ALTER TABLE gold.lead_funnel_summary
+ADD CONSTRAINT pk_lead_funnel_summary
+PRIMARY KEY (source);
