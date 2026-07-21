@@ -90,3 +90,20 @@ asociadas a productos inactivos. Esta situación se conserva como indicador para
 - El monto registrado del pipeline abierto es 83.464.415,86.
 - Existen 205 leads con estado actual "converted", equivalentes al 10,25 % de los 2.000 leads.
 - No se detectaron leads con problemas según las reglas de calidad aplicadas en Silver.
+
+## Hallazgo 13.- ## KPIs ejecutivos consolidados
+### University
+- El 59,72 % de las inscripciones tiene estado "completed".
+- El 10,12 % tiene estado "failed".
+- El 10,01 % tiene estado "dropped".
+- Las tasas restantes corresponden principalmente a inscripciones activas.
+### Billing
+- El 69,93 % de las facturas tiene estado "paid".
+- El 41,40 % de las facturas marcadas como "paid" presenta un pago
+  acumulado inferior al total de la factura.
+- El 75,15 % de las suscripciones tiene estado "active".
+- Los importes de Billing se mantienen separados por moneda.
+### CRM
+- La tasa de ganancia entre oportunidades cerradas es del 61,10 %.
+- El 10,25 % de los leads tiene estado actual "converted".
+- De las 20.000 actividades, 17.019 pudieron asignarse a una cuenta y 2.981 no tienen referencias suficientes para su atribución.

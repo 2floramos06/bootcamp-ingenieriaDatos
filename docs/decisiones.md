@@ -59,3 +59,11 @@ asigna a la cuenta del contacto. Las actividades sin contacto ni oportunidad no 
 Los leads se analizan en una tabla separada porque el origen no proporciona una relación entre leads, accounts, contacts u opportunities.
 El campo "amount" de oportunidades no incluye moneda. Por este motivo, los valores se presentan como montos registrados en CRM y no se
 etiquetan como USD ni se combinan con los importes de Billing.
+
+## Decisión 11.- Construcción de KPIs ejecutivos
+Los indicadores generales de University, Billing y CRM se consolidan en "gold.executive_kpis".
+Los importes financieros de Billing no se incluyen en una única suma ejecutiva, debido a que existen ocho monedas diferentes y el origen no proporciona tipos de cambio.
+Los importes se presentan en "gold.billing_currency_kpis", utilizando una fila por moneda.
+La tasa de ganancia de CRM se calcula únicamente sobre oportunidades cerradas:
+won / (won + lost)
+La tasa de conversión de leads representa la proporción cuyo estado actual es "converted".
