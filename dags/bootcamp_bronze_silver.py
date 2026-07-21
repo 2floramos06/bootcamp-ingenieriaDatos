@@ -12,6 +12,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
 from docker.errors import NotFound
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 
 JUPYTER_CONTAINER = "bootcamp_jupyter"
@@ -287,7 +288,15 @@ with DAG(
         trigger_rule=TriggerRule.ALL_DONE,
     )
 
-    (
+    task_trigger_gold = TriggerDagRunOperator(
+    task_id="trigger_gold_pipeline",
+    trigger_dag_id="bootcamp_gold",
+    wait_for_completion=False,
+    reset_dag_run=False,
+    trigger_rule=TriggerRule.ALL_SUCCESS,
+    )
+
+    (   
         task_bronze
         >> task_start_jupyter
         >> task_silver_university
@@ -296,3 +305,8 @@ with DAG(
         >> task_validate
         >> task_stop_jupyter
     )
+
+    [
+        task_validate,
+        task_stop_jupyter,
+    ] >> task_trigger_gold
