@@ -107,3 +107,13 @@ asociadas a productos inactivos. Esta situación se conserva como indicador para
 - La tasa de ganancia entre oportunidades cerradas es del 61,10 %.
 - El 10,25 % de los leads tiene estado actual "converted".
 - De las 20.000 actividades, 17.019 pudieron asignarse a una cuenta y 2.981 no tienen referencias suficientes para su atribución.
+
+## Hallazgo 14.- Integración University y Billing
+La relación lógica entre estudiantes y clientes se realizó mediante "students.student_id = customers.external_ref".
+Los 5.000 estudiantes encontraron un cliente relacionado, por lo que no existen estudiantes sin correspondencia en Billing.
+Entre los estudiantes vinculados:
+- 4.967 tienen al menos una factura.
+- 33 no tienen facturas.
+- 3.399 tienen al menos una suscripción activa.
+- 1.601 no tienen suscripciones activas.
+La vista "gold.vw_student_customer_360" mantiene una fila por estudiante y consolida únicamente conteos financieros. Los importes no se suman entre monedas diferentes.

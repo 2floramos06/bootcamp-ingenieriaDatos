@@ -67,3 +67,7 @@ Los importes se presentan en "gold.billing_currency_kpis", utilizando una fila p
 La tasa de ganancia de CRM se calcula únicamente sobre oportunidades cerradas:
 won / (won + lost)
 La tasa de conversión de leads representa la proporción cuyo estado actual es "converted".
+
+## Decisión 12.- Vista integrada de estudiantes y clientes
+La vista "gold.vw_student_customer_360" integra University y Billing mediante el identificador externo del cliente.
+Para mantener una fila por estudiante, la información de facturación se agrega previamente por cliente. Se incluyen conteos de facturas, pagos e incidencias, pero no se consolidan importes de monedas diferentes.
