@@ -71,3 +71,14 @@ La tasa de conversión de leads representa la proporción cuyo estado actual es 
 ## Decisión 12.- Vista integrada de estudiantes y clientes
 La vista "gold.vw_student_customer_360" integra University y Billing mediante el identificador externo del cliente.
 Para mantener una fila por estudiante, la información de facturación se agrega previamente por cliente. Se incluyen conteos de facturas, pagos e incidencias, pero no se consolidan importes de monedas diferentes.
+
+## Decisión 14.- Uso de metabase para dashboards
+Los dashboards fueron construidos en Metabase y consumen exclusivamente tablas y vistas del esquema "gold" de PostgreSQL.
+Para visualizar revisar la carpeta docs/dashboard o para iniciar el entorno de visualización (localhost:3000):
+
+```bash
+docker compose \
+  --env-file docker/.env \
+  -f docker/docker-compose.yml \
+  up -d postgres metabase
+
